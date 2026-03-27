@@ -16,4 +16,4 @@ use AUROC per class
     performance vs compute vs data efficiency
 
 ### Practical question:
-    “What’s the cheapest way to get near-SOTA performance?”
+    “What’s the cheapest way to get near-SOTA performance?”.

@@ -1,47 +1,23 @@
 # AGENTS.md
 
 ## Project Overview
+
 Medical imaging research project evaluating Vision Transformer (ViT) adaptation strategies for multi-label chest X-ray disease classification. Compares CNN baselines (DenseNet-121) against ViT fine-tuning approaches (full, partial, PEFT/LoRA).
+
+**Dataset:** NIH ChestX-ray14 with 14 disease labels: Atelectasis, Cardiomegaly, Consolidation, Edema, Effusion, Emphysema, Fibrosis, Hernia, Infiltration, Mass, Nodule, Pneumonia, Pneumothorax, Pleural_Thickening.
 
 ## Environment Setup
 
-### Dependencies
-```
+```bash
 pip install torch torchvision transformers peft scikit-learn pandas matplotlib numpy Pillow
 ```
 
-### Hardware
 - CUDA-enabled GPU recommended; falls back to CPU
+- Python 3.9+
 
 ## Commands
 
-### Python/Linting
-```bash
-# Syntax check
-python3 -m py_compile <file.py>
-
-# Format code
-black <file.py>          # Single file
-black .                  # Entire project
-
-# Lint
-flake8 <file.py>
-
-# Auto-sort imports
-isort <file.py>
-```
-
-### Testing
-```bash
-pytest                         # Run all tests
-pytest tests/                  # Specific directory
-pytest tests/test_model.py     # Single test file
-pytest -v                      # Verbose output
-pytest -k "test_name"          # Tests matching pattern
-pytest --cov=.                 # With coverage
-```
-
-### Jupyter Notebook
+### Notebook Development
 ```bash
 # Validate notebook syntax
 python3 -c "import nbformat; nbformat.read('notebook.ipynb', as_version=4)"
@@ -50,20 +26,23 @@ python3 -c "import nbformat; nbformat.read('notebook.ipynb', as_version=4)"
 jupyter nbconvert --to notebook --execute notebook.ipynb --output notebook.ipynb
 ```
 
-### ML Training
+### Python/Linting
 ```bash
-python3 train.py --strategy full --epochs 10 --batch_size 32
-python3 train.py --strategy peft_lora
-python3 train.py --strategy partial
+python3 -m py_compile <file.py>  # Syntax check
+black <file.py>                  # Format code
+flake8 <file.py>                  # Lint
+isort <file.py>                  # Sort imports
+```
+
+### Testing
+```bash
+pytest                         # Run all tests
+pytest -v                      # Verbose
+pytest -k "test_name"          # Match pattern
+pytest --cov=.                 # With coverage
 ```
 
 ## Code Style Guidelines
-
-### Python Version
-- Target Python 3.9+
-
-### General Style
-- Follow PEP 8; line length: 100 chars; 4 spaces (no tabs)
 
 ### Naming Conventions
 | Type | Convention | Example |
@@ -78,15 +57,15 @@ python3 train.py --strategy partial
 ```python
 # Standard library
 import os
-import json
 
 # Third-party
 import torch
 import torch.nn as nn
 import numpy as np
 import pandas as pd
+from sklearn.metrics import roc_auc_score
 
-# Local
+# Local/project
 from transformers import ViTForImageClassification
 from peft import LoraConfig, get_peft_model
 ```
@@ -94,7 +73,6 @@ from peft import LoraConfig, get_peft_model
 ### Type Annotations
 ```python
 def build_vit_model(strategy: str, num_classes: int = 14) -> nn.Module:
-    ...
 ```
 
 ### Docstrings (Google style)
@@ -138,7 +116,7 @@ except ValueError as e:
 ### Vision Transformer Usage
 - Standard input size: 224x224 or 384x384
 - Normalize with ImageNet stats: mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-- HuggingFace ViT returns object with `.logits` attribute
+- HuggingFace ViT returns object with `.logits` attribute (extract via `outputs.logits`)
 - Torchvision models return logits directly
 
 ### LoRA/PEFT
@@ -149,17 +127,32 @@ except ValueError as e:
 ### Dataset Implementation
 ```python
 class ChestXRayDataset(Dataset):
-    def __init__(self, csv_file: str, image_dir: str, transform=None):
+    def __init__(self, csv_file: str, image_dir: str, transform=None, labels_filter: list = None):
         self.df = pd.read_csv(csv_file)
         self.image_dir = image_dir
         self.transform = transform
-    
+        self.labels_filter = labels_filter or DISEASE_LABELS
+        self.image_names = self.df['Image Index'].values
+        self._build_label_matrix()
+
+    def _build_label_matrix(self) -> None:
+        label_vectors = []
+        for _, row in self.df.iterrows():
+            findings = row['Finding Labels'].split('|')
+            vector = [1.0 if disease in findings else 0.0 for disease in self.labels_filter]
+            label_vectors.append(vector)
+        self.labels = np.array(label_vectors, dtype=np.float32)
+
     def __len__(self) -> int:
         return len(self.df)
-    
+
     def __getitem__(self, idx: int):
-        # Return (image_tensor, label_tensor)
-        ...
+        img_path = os.path.join(self.image_dir, self.image_names[idx])
+        image = Image.open(img_path).convert('RGB')
+        labels = torch.tensor(self.labels[idx])
+        if self.transform:
+            image = self.transform(image)
+        return image, labels
 ```
 
 ## File Organization
@@ -168,17 +161,15 @@ myPorject/
 ├── ViT_XRay_Roadmap.ipynb    # Main research notebook
 ├── ViT_XRay_Roadmap.md       # Project description
 ├── requirements.txt          # Dependencies
-├── src/                      # Python source code (when refactored)
-├── tests/                    # Unit tests
-├── data/                     # Dataset files
-├── models/                   # Saved model checkpoints
+├── data/                     # Dataset files (images/, Data_Entry_2017.csv)
+├── models/                   # Saved model checkpoints (when added)
 └── AGENTS.md                 # This file
 ```
 
 ## Common Tasks
 
-### Adding a New Model
-1. Implement model builder function with snake_case name
+### Adding a New Model Strategy
+1. Add builder function with snake_case name
 2. Register in `build_vit_model()` with strategy parameter
 3. Add corresponding test case
 

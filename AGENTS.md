@@ -30,7 +30,8 @@ jupyter nbconvert --to notebook --execute notebook.ipynb --output notebook.ipynb
 ```bash
 python3 -m py_compile <file.py>  # Syntax check
 black <file.py>                  # Format code
-flake8 <file.py>                  # Lint
+ruff check <file.py>             # Lint (recommended)
+ruff format <file.py>            # Format (alternative to black)
 isort <file.py>                  # Sort imports
 ```
 
@@ -40,6 +41,8 @@ pytest                         # Run all tests
 pytest -v                      # Verbose
 pytest -k "test_name"          # Match pattern
 pytest --cov=.                 # With coverage
+pytest tests/                  # Run specific test directory
+pytest tests/test_file.py::test_function  # Run single test function
 ```
 
 ## Code Style Guidelines
@@ -126,33 +129,20 @@ except ValueError as e:
 
 ### Dataset Implementation
 ```python
-class ChestXRayDataset(Dataset):
-    def __init__(self, csv_file: str, image_dir: str, transform=None, labels_filter: list = None):
-        self.df = pd.read_csv(csv_file)
-        self.image_dir = image_dir
-        self.transform = transform
-        self.labels_filter = labels_filter or DISEASE_LABELS
-        self.image_names = self.df['Image Index'].values
-        self._build_label_matrix()
+from src.dataset import ChestXRayDataset, validate_alignment, scan_images, load_label_dict
 
-    def _build_label_matrix(self) -> None:
-        label_vectors = []
-        for _, row in self.df.iterrows():
-            findings = row['Finding Labels'].split('|')
-            vector = [1.0 if disease in findings else 0.0 for disease in self.labels_filter]
-            label_vectors.append(vector)
-        self.labels = np.array(label_vectors, dtype=np.float32)
+# Alignment validation (run before training)
+label_dict = load_label_dict("dataset/labels.csv")
+path_cache = scan_images(["data/images_001/images", ...])
+common_files, missing_images, missing_labels = validate_alignment(label_dict, path_cache)
 
-    def __len__(self) -> int:
-        return len(self.df)
-
-    def __getitem__(self, idx: int):
-        img_path = os.path.join(self.image_dir, self.image_names[idx])
-        image = Image.open(img_path).convert('RGB')
-        labels = torch.tensor(self.labels[idx])
-        if self.transform:
-            image = self.transform(image)
-        return image, labels
+# Dataset with built-in alignment
+dataset = ChestXRayDataset(
+    csv_file="dataset/labels.csv",
+    image_dirs=["data/images_001/images", "data/images_002/images", ...],
+    transform=train_transform,
+    validate=True  # validates alignment on init
+)
 ```
 
 ## File Organization
@@ -161,10 +151,24 @@ myPorject/
 ├── ViT_XRay_Roadmap.ipynb    # Main research notebook
 ├── ViT_XRay_Roadmap.md       # Project description
 ├── requirements.txt          # Dependencies
-├── data/                     # Dataset files (images/, Data_Entry_2017.csv)
+├── data/                     # Raw dataset (images_001-012/, Data_Entry_2017.csv)
+├── dataset/
+│   └── labels.csv           # Labels CSV (symlink to data/)
+│   └── images/               # Image directory (or symlinks to data/)
+├── src/
+│   ├── dataset.py           # ChestXRayDataset + alignment validation
+│   ├── transforms.py        # Image transforms (train/val)
+│   └── train.py             # Training loop, model builders, evaluation
 ├── models/                   # Saved model checkpoints (when added)
 └── AGENTS.md                 # This file
 ```
+
+## Dataset Alignment
+
+Always validate image-label alignment before training:
+- Use `validate_alignment(label_dict, path_cache)` to verify matching
+- Dataset builds `samples` list from intersection of labels and images
+- Set `validate=False` to skip validation check (not recommended for production)
 
 ## Common Tasks
 

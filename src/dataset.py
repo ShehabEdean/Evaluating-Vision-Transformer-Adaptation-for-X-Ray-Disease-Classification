@@ -97,6 +97,7 @@ class ChestXRayDataset(Dataset):
         self.image_dirs = image_dirs if isinstance(image_dirs, list) else [image_dirs]
         self.transform = transform
         self.labels_filter = labels_filter or DISEASE_LABELS
+        self.num_classes = len(self.labels_filter)
         
         self.label_dict = load_label_dict(csv_file, self.labels_filter)
         self.path_cache = scan_images(self.image_dirs)
@@ -127,7 +128,7 @@ class ChestXRayDataset(Dataset):
         if self.transform:
             image = self.transform(image)
             
-        return image, labels
+        return image, labels, img_name
 
     def get_label_distribution(self):
         total_labels = np.array([self.label_dict[img] for img in self.samples])

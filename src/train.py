@@ -7,8 +7,11 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from sklearn.metrics import roc_auc_score
 
-from src.dataset import ChestXRayDataset, DISEASE_LABELS, split_by_patient
-from src.transforms import get_train_transform, get_val_transform
+import sys
+sys.path.insert(0, 'src')
+
+from dataset import ChestXRayDataset, DISEASE_LABELS, split_by_patient
+from transforms import get_train_transform, get_val_transform
 
 RANDOM_SEED = 42
 

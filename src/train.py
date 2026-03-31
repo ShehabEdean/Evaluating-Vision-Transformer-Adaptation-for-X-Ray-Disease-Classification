@@ -136,7 +136,7 @@ def evaluate(model, dataloader, device, criterion=None):
 def main():
     set_seed(RANDOM_SEED)
     
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cpu')
     
     CSV_PATH = "dataset/labels.csv"
     IMAGE_DIRS = [
@@ -158,6 +158,10 @@ def main():
     val_transform = get_val_transform()
     
     train_files, val_files = split_by_patient(CSV_PATH, train_ratio=0.8, seed=RANDOM_SEED)
+    
+    # Use smaller subsets for faster testing
+    train_files = train_files[:1000]  # Use 1000 training samples
+    val_files = val_files[:200]      # Use 200 validation samples
     
     train_dataset = ChestXRayDataset(CSV_PATH, IMAGE_DIRS, transform=train_transform, sample_filter=train_files, validate=True)
     val_dataset = ChestXRayDataset(CSV_PATH, IMAGE_DIRS, transform=val_transform, sample_filter=val_files, validate=False)
@@ -206,7 +210,7 @@ def main():
     best_auc = 0.0
     epoch_stats = []
     
-    num_epochs = 10
+    num_epochs = 2
     for epoch in range(num_epochs):
         start_time = time.time()
         train_loss = train_one_epoch(model, train_loader, optimizer, criterion, device)

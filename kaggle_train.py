@@ -93,10 +93,18 @@ def evaluate(model, dataloader, device, criterion=None):
         auc_scores = roc_auc_score(all_labels, all_preds, average=None)
         mean_auc = auc_scores.mean()
         macro_auc = roc_auc_score(all_labels, all_preds, average='macro')
-        return auc_scores, mean_auc, macro_auc, val_loss
+        
+        # Add F1, Precision, Recall (CRITICAL)
+        from sklearn.metrics import f1_score, precision_score, recall_score
+        preds_binary = (all_preds > 0.5).astype(int)
+        f1 = f1_score(all_labels, preds_binary, average='macro', zero_division=0)
+        precision = precision_score(all_labels, preds_binary, average='macro', zero_division=0)
+        recall = recall_score(all_labels, preds_binary, average='macro', zero_division=0)
+        
+        return auc_scores, mean_auc, macro_auc, val_loss, f1, precision, recall
     except Exception as e:
         print(f"AUC computation error: {e}")
-        return None, None, None, val_loss
+        return None, None, None, val_loss, None, None, None
 
 def main():
     set_seed(RANDOM_SEED)
@@ -185,6 +193,7 @@ def main():
     # Track metrics
     train_losses = []
     val_aucs = []
+    history = []  # Full experiment log
     
     # Create output directory
     os.makedirs('/kaggle/working/outputs', exist_ok=True)
@@ -198,15 +207,34 @@ def main():
         # Track metrics
         train_losses.append(train_loss)
         
-        auc_scores, mean_auc, macro_auc, val_loss = evaluate(model, val_loader, device, criterion)
+        result = evaluate(model, val_loader, device, criterion)
+        if result[0] is not None:  # Check if evaluation succeeded
+            auc_scores, mean_auc, macro_auc, val_loss, f1, precision, recall = result
+        else:
+            # Fallback if evaluation failed
+            auc_scores, mean_auc, macro_auc, val_loss = result[:4]
+            f1, precision, recall = None, None, None
         if mean_auc is not None:
             val_aucs.append(mean_auc)
-        if mean_auc is not None:
             print(f"Mean AUC: {mean_auc:.4f}, Macro AUC: {macro_auc:.4f}")
+            print(f"F1: {f1:.4f}, Precision: {precision:.4f}, Recall: {recall:.4f}")
             print(f"Per-class AUC: {auc_scores}")
             
-            # Update scheduler
-            scheduler.step(mean_auc)
+            # Full experiment logging
+            history.append({
+                'epoch': epoch+1,
+                'train_loss': train_loss,
+                'val_loss': val_loss,
+                'mean_auc': mean_auc,
+                'macro_auc': macro_auc,
+                'f1': f1,
+                'precision': precision,
+                'recall': recall,
+                'time': epoch_time
+            })
+            
+            # Update scheduler (use macro AUC as suggested)
+            scheduler.step(macro_auc)
             
             # Save best model
             if mean_auc > best_auc:

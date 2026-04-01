@@ -112,21 +112,21 @@ def main():
         print("⚠️  WARNING: Running on CPU - training will be very slow!")
         print("Go to Runtime → Change runtime type → GPU for 10-50x speedup")
     
-    # Colab paths - update these to match your Google Drive structure
-    CSV_PATH = "/content/drive/MyDrive/Xray/dataset/labels.csv"
+    # LOCAL COLAB PATHS - using repository's own dataset structure
+    CSV_PATH = "/content/Evaluating-Vision-Transformer-Adaptation-for-X-Ray-Disease-Classification/dataset/labels.csv"
     IMAGE_DIRS = [
-        "/content/drive/MyDrive/Xray/data/images_001/images",
-        "/content/drive/MyDrive/Xray/data/images_002/images",
-        "/content/drive/MyDrive/Xray/data/images_003/images",
-        "/content/drive/MyDrive/Xray/data/images_004/images",
-        "/content/drive/MyDrive/Xray/data/images_005/images",
-        "/content/drive/MyDrive/Xray/data/images_006/images",
-        "/content/drive/MyDrive/Xray/data/images_007/images",
-        "/content/drive/MyDrive/Xray/data/images_008/images",
-        "/content/drive/MyDrive/Xray/data/images_009/images",
-        "/content/drive/MyDrive/Xray/data/images_010/images",
-        "/content/drive/MyDrive/Xray/data/images_011/images",
-        "/content/drive/MyDrive/Xray/data/images_012/images",
+        "/content/Evaluating-Vision-Transformer-Adaptation-for-X-Ray-Disease-Classification/data/images_001/images",
+        "/content/Evaluating-Vision-Transformer-Adaptation-for-X-Ray-Disease-Classification/data/images_002/images",
+        "/content/Evaluating-Vision-Transformer-Adaptation-for-X-Ray-Disease-Classification/data/images_003/images",
+        "/content/Evaluating-Vision-Transformer-Adaptation-for-X-Ray-Disease-Classification/data/images_004/images",
+        "/content/Evaluating-Vision-Transformer-Adaptation-for-X-Ray-Disease-Classification/data/images_005/images",
+        "/content/Evaluating-Vision-Transformer-Adaptation-for-X-Ray-Disease-Classification/data/images_006/images",
+        "/content/Evaluating-Vision-Transformer-Adaptation-for-X-Ray-Disease-Classification/data/images_007/images",
+        "/content/Evaluating-Vision-Transformer-Adaptation-for-X-Ray-Disease-Classification/data/images_008/images",
+        "/content/Evaluating-Vision-Transformer-Adaptation-for-X-Ray-Disease-Classification/data/images_009/images",
+        "/content/Evaluating-Vision-Transformer-Adaptation-for-X-Ray-Disease-Classification/data/images_010/images",
+        "/content/Evaluating-Vision-Transformer-Adaptation-for-X-Ray-Disease-Classification/data/images_011/images",
+        "/content/Evaluating-Vision-Transformer-Adaptation-for-X-Ray-Disease-Classification/data/images_012/images",
     ]
     
     print("Loading and splitting data...")

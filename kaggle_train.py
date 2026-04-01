@@ -12,6 +12,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from sklearn.metrics import roc_auc_score
+import json
 
 import sys
 sys.path.insert(0, 'src')
@@ -178,6 +179,12 @@ def main():
     # Train for 10 epochs (Kaggle can handle longer training)
     num_epochs = 10
     best_auc = 0.0
+    patience = 3  # Early stopping patience
+    no_improve = 0
+    
+    # Track metrics
+    train_losses = []
+    val_aucs = []
     
     # Create output directory
     os.makedirs('/kaggle/working/outputs', exist_ok=True)
@@ -188,7 +195,12 @@ def main():
         epoch_time = time.time() - start_time
         print(f"Epoch {epoch+1}/{num_epochs} - Loss: {train_loss:.4f} - Time: {epoch_time:.2f}s")
         
+        # Track metrics
+        train_losses.append(train_loss)
+        
         auc_scores, mean_auc, macro_auc, val_loss = evaluate(model, val_loader, device, criterion)
+        if mean_auc is not None:
+            val_aucs.append(mean_auc)
         if mean_auc is not None:
             print(f"Mean AUC: {mean_auc:.4f}, Macro AUC: {macro_auc:.4f}")
             print(f"Per-class AUC: {auc_scores}")
@@ -199,10 +211,30 @@ def main():
             # Save best model
             if mean_auc > best_auc:
                 best_auc = mean_auc
+                no_improve = 0
                 model_path = f'/kaggle/working/outputs/best_model_epoch_{epoch+1}.pth'
                 torch.save(model.state_dict(), model_path)
                 print(f"💾 New best model saved to {model_path}")
+            else:
+                no_improve += 1
+                print(f"⏳ No improvement for {no_improve} epochs")
+                
+                # Early stopping
+                if no_improve >= patience:
+                    print(f"🛑 Early stopping triggered after {epoch+1} epochs")
+                    break
         print()
+    
+    # Save training metrics
+    metrics = {
+        'best_auc': best_auc,
+        'final_epoch': epoch + 1,
+        'train_losses': train_losses if 'train_losses' in locals() else [],
+        'val_aucs': val_aucs if 'val_aucs' in locals() else []
+    }
+    
+    with open('/kaggle/working/outputs/training_metrics.json', 'w') as f:
+        json.dump(metrics, f, indent=2)
     
     print(f"🎉 Training completed! Best AUC: {best_auc:.4f}")
     print(f"📁 All outputs saved to /kaggle/working/outputs/")

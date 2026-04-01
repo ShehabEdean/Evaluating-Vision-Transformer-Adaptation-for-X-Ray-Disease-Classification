@@ -1,0 +1,50 @@
+Random seed set to 42
+Using device: cuda
+Loading and splitting data...
+Patient-based split: 24644 train patients, 6161 val patients
+Image split: 89703 train images, 22417 val images
+Using reduced dataset for testing...
+WARNING: 6 images without labels (first 5: ['00015585_000 (1).png', '00015584_006 (1).png', '00015588_002 (1).png', '00015587_001 (1).png', '00015587_003 (1).png'])
+Aligned samples: 112120
+Train dataset size: 1000
+Val dataset size: 300
+
+Building model...
+Downloading: "https://download.pytorch.org/models/densenet121-a639ec97.pth" to /root/.cache/torch/hub/checkpoints/densenet121-a639ec97.pth
+100% 30.8M/30.8M [00:00<00:00, 147MB/s]
+Trainable params: 6968206
+Epoch 1/5 - Loss: 1.2686 - Time: 129.16s
+Mean AUC: 0.6674, Macro AUC: 0.6674
+Per-class AUC: [0.59956737 0.61215753 0.85050676 0.88597973 0.73117898 0.55025462
+ 0.63186813 0.51006711 0.59259259 0.73752834 0.64165103 0.49746622
+ 0.74034483 0.76250477]
+New best model!
+
+Epoch 2/5 - Loss: 1.0853 - Time: 29.15s
+Mean AUC: 0.7069, Macro AUC: 0.7069
+Per-class AUC: [0.67056877 0.67808219 0.73986486 0.89611486 0.80326705 0.64299116
+ 0.69205794 0.60067114 0.59269083 0.75170068 0.67595819 0.67989865
+ 0.75517241 0.71783123]
+New best model!
+
+Epoch 3/5 - Loss: 0.9612 - Time: 28.81s
+Mean AUC: 0.7312, Macro AUC: 0.7312
+Per-class AUC: [0.662298   0.77482877 0.7027027  0.90033784 0.85147372 0.69900831
+ 0.69355644 0.63926174 0.6328716  0.69160998 0.7075851  0.70439189
+ 0.80103448 0.77625048]
+New best model!
+
+Epoch 4/5 - Loss: 0.8536 - Time: 29.50s
+Mean AUC: 0.7380, Macro AUC: 0.7380
+Per-class AUC: [0.66560631 0.77440068 0.71706081 0.79307432 0.86328125 0.75341731
+ 0.69280719 0.68791946 0.61980548 0.69954649 0.75127312 0.70692568
+ 0.81344828 0.79305078]
+New best model!
+
+Epoch 5/5 - Loss: 0.7623 - Time: 28.91s
+Mean AUC: 0.7337, Macro AUC: 0.7337
+Per-class AUC: [0.66280697 0.79666096 0.7035473  0.82347973 0.86585582 0.70034843
+ 0.70904096 0.72483221 0.66450535 0.64569161 0.72152238 0.69087838
+ 0.73586207 0.82626957]
+
+Training completed! Best AUC: 0.7380

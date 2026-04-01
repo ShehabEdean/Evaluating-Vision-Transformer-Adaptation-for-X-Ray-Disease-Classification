@@ -1,0 +1,36 @@
+Random seed set to 42
+Using device: cpu
+Loading and splitting data...
+Patient-based split: 24644 train patients, 6161 val patients
+Image split: 89703 train images, 22417 val images
+Using reduced dataset for testing...
+WARNING: 6 images without labels (first 5: ['00015584_009 (1).png', '00015585_000 (1).png', '00015587_003 (1).png', '00015584_006 (1).png', '00015588_002 (1).png'])
+Aligned samples: 112120
+/usr/local/lib/python3.12/dist-packages/torch/utils/data/dataloader.py:424: UserWarning: This DataLoader will create 4 worker processes in total. Our suggested max number of worker in current system is 2, which is smaller than what this DataLoader is going to create. Please be aware that excessive worker creation might get DataLoader running slow or even freeze, lower the worker number to avoid potential slowness/freeze if necessary.
+  self.check_worker_number_rationality()
+Train dataset size: 500
+Val dataset size: 100
+
+Building model...
+Downloading: "https://download.pytorch.org/models/densenet121-a639ec97.pth" to /root/.cache/torch/hub/checkpoints/densenet121-a639ec97.pth
+100% 30.8M/30.8M [00:00<00:00, 99.9MB/s]
+Trainable params: 6968206
+/usr/local/lib/python3.12/dist-packages/torch/utils/data/dataloader.py:432: UserWarning: This DataLoader will create 4 worker processes in total. Our suggested max number of worker in current system is 2, which is smaller than what this DataLoader is going to create. Please be aware that excessive worker creation might get DataLoader running slow or even freeze, lower the worker number to avoid potential slowness/freeze if necessary.
+  self.check_worker_number_rationality()
+/usr/local/lib/python3.12/dist-packages/torch/utils/data/dataloader.py:1118: UserWarning: 'pin_memory' argument is set as true but no accelerator is found, then device pinned memory won't be used.
+  super().__init__(loader)
+Epoch 1/2 - Loss: 1.2706 - Time: 532.99s
+/usr/local/lib/python3.12/dist-packages/sklearn/metrics/_ranking.py:379: UndefinedMetricWarning: Only one class is present in y_true. ROC AUC score is not defined in that case.
+  warnings.warn(
+/usr/local/lib/python3.12/dist-packages/sklearn/metrics/_ranking.py:379: UndefinedMetricWarning: Only one class is present in y_true. ROC AUC score is not defined in that case.
+  warnings.warn(
+Mean AUC: nan, Macro AUC: nan
+Per-class AUC: [0.55189255 0.75757576 0.76020408 0.89690722 0.56327986 0.44841675
+ 0.06122449        nan 0.597141   0.48109966 0.78385417 0.51546392
+ 0.58485958 0.41326531]
+
+/usr/local/lib/python3.12/dist-packages/torch/utils/data/dataloader.py:432: UserWarning: This DataLoader will create 4 worker processes in total. Our suggested max number of worker in current system is 2, which is smaller than what this DataLoader is going to create. Please be aware that excessive worker creation might get DataLoader running slow or even freeze, lower the worker number to avoid potential slowness/freeze if necessary.
+  self.check_worker_number_rationality()
+/usr/local/lib/python3.12/dist-packages/torch/utils/data/dataloader.py:1118: UserWarning: 'pin_memory' argument is set as true but no accelerator is found, then device pinned memory won't be used.
+  super().__init__(loader)
+Epoch 2/2 - Loss: 1.0686 - Time: 343.53s

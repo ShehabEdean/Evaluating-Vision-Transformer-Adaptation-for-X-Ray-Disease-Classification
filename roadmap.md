@@ -62,10 +62,12 @@ Train on X-ray dataset
 This is the heart of your research:
 
 Experiment A — Full Fine-Tuning
-Train all layers
+Train all layers 
+
 Experiment B — Partial Fine-Tuning
 Freeze most layers
 Train last few transformer blocks
+
 Experiment C — Parameter-Efficient (IMPORTANT)
 Use LoRA (Low-Rank Adaptation)
 Only small injected weights are trained

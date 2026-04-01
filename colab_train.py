@@ -107,6 +107,11 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
     
+    # Warn if using CPU
+    if device.type == 'cpu':
+        print("⚠️  WARNING: Running on CPU - training will be very slow!")
+        print("Go to Runtime → Change runtime type → GPU for 10-50x speedup")
+    
     # Colab paths - update these to match your Google Drive structure
     CSV_PATH = "/content/drive/MyDrive/Xray/dataset/labels.csv"
     IMAGE_DIRS = [
@@ -130,8 +135,8 @@ def main():
     # For quick testing in Colab, use smaller subsets
     # Remove these lines for full training
     print("Using reduced dataset for testing...")
-    train_files = train_files[:500]   # 500 training samples
-    val_files = val_files[:100]      # 100 validation samples
+    train_files = train_files[:1000]   # 1000 training samples (increased from 500)
+    val_files = val_files[:300]      # 300 validation samples (increased from 100)
     
     train_transform = get_train_transform()
     val_transform = get_val_transform()
@@ -139,8 +144,9 @@ def main():
     train_dataset = ChestXRayDataset(CSV_PATH, IMAGE_DIRS, transform=train_transform, sample_filter=train_files, validate=True)
     val_dataset = ChestXRayDataset(CSV_PATH, IMAGE_DIRS, transform=val_transform, sample_filter=val_files, validate=False)
     
-    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=4, pin_memory=True)
-    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False, num_workers=4, pin_memory=True)
+    # Reduced workers to avoid warnings and improve stability
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=2, pin_memory=True)
+    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False, num_workers=2, pin_memory=True)
     
     print(f"Train dataset size: {len(train_dataset)}")
     print(f"Val dataset size: {len(val_dataset)}")
@@ -161,8 +167,8 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.1, patience=2)
     
-    # Train for 2 epochs (test run)
-    num_epochs = 2
+    # Train for 5 epochs (better results while still quick)
+    num_epochs = 5
     best_auc = 0.0
     
     for epoch in range(num_epochs):

@@ -46,6 +46,7 @@ def compute_pos_weights(labels: torch.Tensor) -> torch.Tensor:
 def train_one_epoch(model, dataloader, optimizer, criterion, device):
     model.train()
     running_loss = 0.0
+    start_time = time.time()
     
     for images, labels, _ in dataloader:
         images, labels = images.to(device), labels.to(device)
@@ -60,7 +61,10 @@ def train_one_epoch(model, dataloader, optimizer, criterion, device):
         
         running_loss += loss.item()
     
-    return running_loss / len(dataloader)
+    epoch_time = time.time() - start_time
+    gpu_memory = torch.cuda.max_memory_allocated(device) / 1024**2 if torch.cuda.is_available() else 0
+    
+    return running_loss / len(dataloader), epoch_time, gpu_memory
 
 def evaluate(model, dataloader, device, criterion=None):
     model.eval()
@@ -151,9 +155,9 @@ def main():
     train_files, val_files = split_by_patient(CSV_PATH, train_ratio=0.8, seed=RANDOM_SEED)
     
     # Use larger dataset for Kaggle (more resources available)
-    print("Using 10000 train / 2000 val samples...")
-    train_files = train_files[:10000]   # 10000 training samples
-    val_files = val_files[:2000]      # 2000 validation samples
+    print("Using 20000 train / 4000 val samples...")
+    train_files = train_files[:20000]   # 20000 training samples
+    val_files = val_files[:4000]      # 4000 validation samples
     
     train_transform = get_train_transform()
     val_transform = get_val_transform()
@@ -185,7 +189,7 @@ def main():
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.1, patience=2)
     
     # Train for 10 epochs (Kaggle can handle longer training)
-    num_epochs = 10
+    num_epochs = 12
     best_auc = 0.0
     patience = 3  # Early stopping patience
     no_improve = 0
@@ -199,10 +203,8 @@ def main():
     os.makedirs('/kaggle/working/outputs', exist_ok=True)
     
     for epoch in range(num_epochs):
-        start_time = time.time()
-        train_loss = train_one_epoch(model, train_loader, optimizer, criterion, device)
-        epoch_time = time.time() - start_time
-        print(f"Epoch {epoch+1}/{num_epochs} - Loss: {train_loss:.4f} - Time: {epoch_time:.2f}s")
+        train_loss, epoch_time, gpu_memory = train_one_epoch(model, train_loader, optimizer, criterion, device)
+        print(f"Epoch {epoch+1}/{num_epochs} - Loss: {train_loss:.4f} - Time: {epoch_time:.2f}s - GPU Memory: {gpu_memory:.2f} MB")
         
         # Track metrics
         train_losses.append(train_loss)
@@ -230,7 +232,8 @@ def main():
                 'f1': f1,
                 'precision': precision,
                 'recall': recall,
-                'time': epoch_time
+                'time': epoch_time,
+                'gpu_memory': gpu_memory
             })
             
             # Update scheduler (use macro AUC as suggested)
@@ -258,7 +261,8 @@ def main():
         'best_auc': best_auc,
         'final_epoch': epoch + 1,
         'train_losses': train_losses if 'train_losses' in locals() else [],
-        'val_aucs': val_aucs if 'val_aucs' in locals() else []
+        'val_aucs': val_aucs if 'val_aucs' in locals() else [],
+        'history': history
     }
     
     with open('/kaggle/working/outputs/training_metrics.json', 'w') as f:

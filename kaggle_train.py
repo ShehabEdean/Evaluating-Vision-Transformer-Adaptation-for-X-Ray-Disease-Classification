@@ -121,23 +121,20 @@ def evaluate(model, dataloader, device, criterion=None):
 
 
 def main():
-    # Parse command line arguments
-    parser = argparse.ArgumentParser(
-        description="Train chest X-ray classification models"
-    )
+    parser = argparse.ArgumentParser(description="Train Cnn or ViT on Chest X-Rays")
     parser.add_argument(
         "--model",
         type=str,
         choices=["cnn", "vit"],
         default="vit",
-        help="Model architecture to train (cnn or vit)",
+        help="Choose model architecture",
     )
     parser.add_argument(
         "--strategy",
         type=str,
         choices=["full", "partial", "peft_lora"],
         default="full",
-        help="ViT fine-tuning strategy (only used when model=vit)",
+        help="ViT fine-tuning strategy",
     )
     args = parser.parse_args()
 
@@ -225,11 +222,10 @@ def main():
     print(f"Train dataset size: {len(train_dataset)}")
     print(f"Val dataset size: {len(val_dataset)}")
 
-    # Build model
-    print("\nBuilding model...")
+    print(f"\nBuilding {args.model.upper()} model (Strategy: {args.strategy})...")
     if args.model == "cnn":
         model = build_baseline_cnn(num_classes=14).to(device)
-    elif args.model == "vit":
+    else:
         model = build_vit_model(strategy=args.strategy, num_classes=14).to(device)
 
     def count_trainable_params(model):
@@ -310,7 +306,21 @@ def main():
                 best_auc = mean_auc
                 no_improve = 0
                 model_path = f"/kaggle/working/outputs/best_model_{args.model}_{args.strategy}.pth"
-                torch.save(model.state_dict(), model_path)
+                # Full checkpoint
+                torch.save(
+                    {
+                        "epoch": epoch + 1,
+                        "model_state_dict": model.state_dict(),
+                        "optimizer_state_dict": optimizer.state_dict(),
+                        "best_auc": best_auc,
+                        "best_metrics": {
+                            "f1": f1,
+                            "precision": precision,
+                            "recall": recall,
+                        },
+                    },
+                    model_path,
+                )
                 print(f"💾 New best model saved to {model_path}")
             else:
                 no_improve += 1
@@ -334,7 +344,7 @@ def main():
     }
 
     metrics_path = (
-        f"/kaggle/working/outputs/training_metrics_{args.model}_{args.strategy}.json"
+        f"/kaggle/working/outputs/training_metrics_{args.model} _{args.strategy}.json"
     )
     with open(metrics_path, "w") as f:
         json.dump(metrics, f, indent=2)

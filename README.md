@@ -115,7 +115,7 @@ The project compares:
 
 ## License
 
-[Specify your license here - e.g., MIT, Apache 2.0, etc.]
+FOR PFE
 
 ## Citation
 
@@ -124,11 +124,11 @@ If you use this code or dataset in your research, please cite:
 ```
 @article{your_citation_here,
   title={Vision Transformer Adaptation for Chest X-Ray Disease Classification},
-  author={Your Name},
-  year={2024}
+  author={Ali Chihab Edine Benbertal},
+  year={2026}
 }
 ```
 
 ## Contact
 
-For questions or issues, please open a GitHub issue or contact [your email].
+For questions or issues, please open a GitHub issue.

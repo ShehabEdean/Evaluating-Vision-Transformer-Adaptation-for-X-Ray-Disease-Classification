@@ -13,6 +13,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from sklearn.metrics import roc_auc_score
 import json
+import argparse
 
 import sys
 
@@ -20,6 +21,7 @@ sys.path.insert(0, "src")
 
 from dataset import ChestXRayDataset, DISEASE_LABELS, split_by_patient
 from transforms import get_train_transform, get_val_transform
+from train import build_baseline_cnn, build_vit_model
 
 RANDOM_SEED = 42
 
@@ -163,6 +165,26 @@ def evaluate(model, dataloader, device, criterion=None):
 
 
 def main():
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(
+        description="Train chest X-ray classification models"
+    )
+    parser.add_argument(
+        "--model",
+        type=str,
+        choices=["cnn", "vit"],
+        default="vit",
+        help="Model architecture to train (cnn or vit)",
+    )
+    parser.add_argument(
+        "--strategy",
+        type=str,
+        choices=["full", "partial", "peft_lora"],
+        default="full",
+        help="ViT fine-tuning strategy (only used when model=vit)",
+    )
+    args = parser.parse_args()
+
     set_seed(RANDOM_SEED)
 
     # Use GPU if available
@@ -171,6 +193,9 @@ def main():
     print(
         f"GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'None'}"
     )
+    print(f"Training model: {args.model}")
+    if args.model == "vit":
+        print(f"ViT strategy: {args.strategy}")
 
     # KAGGLE-SPECIFIC PATHS
     CSV_PATH = "/kaggle/working/Evaluating-Vision-Transformer-Adaptation-for-X-Ray-Disease-Classification/dataset/labels.csv"
@@ -246,7 +271,10 @@ def main():
 
     # Build model
     print("\nBuilding model...")
-    model = build_baseline_cnn(num_classes=14).to(device)
+    if args.model == "cnn":
+        model = build_baseline_cnn(num_classes=14).to(device)
+    elif args.model == "vit":
+        model = build_vit_model(strategy=args.strategy, num_classes=14).to(device)
 
     def count_trainable_params(model):
         return sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -325,7 +353,7 @@ def main():
             if mean_auc > best_auc:
                 best_auc = mean_auc
                 no_improve = 0
-                model_path = f"/kaggle/working/outputs/best_model_epoch_{epoch + 1}.pth"
+                model_path = f"/kaggle/working/outputs/best_model_{args.model}_{args.strategy}.pth"
                 torch.save(model.state_dict(), model_path)
                 print(f"💾 New best model saved to {model_path}")
             else:
@@ -345,9 +373,15 @@ def main():
         "train_losses": train_losses if "train_losses" in locals() else [],
         "val_aucs": val_aucs if "val_aucs" in locals() else [],
         "history": history,
+        "model": args.model,
+        "strategy": args.strategy if args.model == "vit" else None,
     }
 
-    with open("/kaggle/working/outputs/training_metrics.json", "w") as f:
+    # Create dynamic output paths based on model and strategy
+    metrics_path = (
+        f"/kaggle/working/outputs/training_metrics_{args.model}_{args.strategy}.json"
+    )
+    with open(metrics_path, "w") as f:
         json.dump(metrics, f, indent=2)
 
     print(f"🎉 Training completed! Best AUC: {best_auc:.4f}")

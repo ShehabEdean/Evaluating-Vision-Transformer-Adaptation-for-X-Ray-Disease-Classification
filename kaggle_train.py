@@ -36,50 +36,6 @@ def set_seed(seed: int = 42):
     print(f"Random seed set to {seed}")
 
 
-def build_baseline_cnn(num_classes: int):
-    import torchvision.models as models
-
-    model = models.densenet121(weights="IMAGENET1K_V1")
-    num_ftrs = model.classifier.in_features
-    model.classifier = nn.Linear(num_ftrs, num_classes)
-    return model
-
-
-def build_vit_model(strategy: str = "full", num_classes: int = 14):
-    from transformers import ViTForImageClassification
-    from peft import LoraConfig, get_peft_model
-
-    model = ViTForImageClassification.from_pretrained(
-        "google/vit-base-patch16-224-in21k",
-        num_labels=num_classes,
-        ignore_mismatched_sizes=True,
-    )
-
-    if strategy == "full":
-        pass
-
-    elif strategy == "partial":
-        for param in model.vit.embeddings.parameters():
-            param.requires_grad = False
-        for layer in model.vit.encoder.layer[:-2]:
-            for param in layer.parameters():
-                param.requires_grad = False
-
-    elif strategy == "peft_lora":
-        config = LoraConfig(
-            r=16,
-            lora_alpha=16,
-            target_modules=["query", "value"],
-            lora_dropout=0.1,
-            bias="none",
-            modules_to_save=["classifier"],
-        )
-        model = get_peft_model(model, config)
-        model.print_trainable_parameters()
-
-    return model
-
-
 def compute_pos_weights(labels: torch.Tensor) -> torch.Tensor:
     num_positives = labels.sum(dim=0)
     num_negatives = len(labels) - num_positives
@@ -377,7 +333,6 @@ def main():
         "strategy": args.strategy if args.model == "vit" else None,
     }
 
-    # Create dynamic output paths based on model and strategy
     metrics_path = (
         f"/kaggle/working/outputs/training_metrics_{args.model}_{args.strategy}.json"
     )

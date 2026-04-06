@@ -344,7 +344,7 @@ def main():
     }
 
     metrics_path = (
-        f"/kaggle/working/outputs/training_metrics_{args.model} _{args.strategy}.json"
+        f"/kaggle/working/outputs/training_metrics_{args.model}_{args.strategy}.json"
     )
     with open(metrics_path, "w") as f:
         json.dump(metrics, f, indent=2)

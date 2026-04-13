@@ -124,7 +124,8 @@ If you use this code or dataset in your research, please cite:
 ```
 @article{your_citation_here,
   title={Vision Transformer Adaptation for Chest X-Ray Disease Classification},
-  author={Ali Chihab Edine Benbertal},
+  author={Ali Chihab Edine Benbertal
+  Saad Zenikhri},
   year={2026}
 }
 ```

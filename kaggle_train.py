@@ -213,10 +213,10 @@ def main():
     )
 
     train_loader = DataLoader(
-        train_dataset, batch_size=32, shuffle=True, num_workers=4, pin_memory=True
+        train_dataset, batch_size=16, shuffle=True, num_workers=4, pin_memory=True
     )
     val_loader = DataLoader(
-        val_dataset, batch_size=32, shuffle=False, num_workers=4, pin_memory=True
+        val_dataset, batch_size=16, shuffle=False, num_workers=4, pin_memory=True
     )
 
     print(f"Train dataset size: {len(train_dataset)}")
@@ -239,7 +239,9 @@ def main():
     )
     pos_weights = compute_pos_weights(torch.tensor(train_labels, dtype=torch.float32))
     criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weights.to(device))
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+    optimizer = torch.optim.Adam(
+        filter(lambda p: p.requires_grad, model.parameters()), lr=5e-5
+    )
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode="max", factor=0.1, patience=2
     )
@@ -258,7 +260,12 @@ def main():
     # Create output directory
     os.makedirs("/kaggle/working/outputs", exist_ok=True)
 
+    if torch.cuda.is_available():
+        torch.cuda.reset_peak_memory_stats(device)
+
     for epoch in range(num_epochs):
+        if torch.cuda.is_available():
+            torch.cuda.reset_peak_memory_stats(device)
         train_loss, epoch_time, gpu_memory = train_one_epoch(
             model, train_loader, optimizer, criterion, device
         )
@@ -279,7 +286,8 @@ def main():
         if mean_auc is not None:
             val_aucs.append(mean_auc)
             print(f"Mean AUC: {mean_auc:.4f}, Macro AUC: {macro_auc:.4f}")
-            print(f"F1: {f1:.4f}, Precision: {precision:.4f}, Recall: {recall:.4f}")
+            if f1 is not None:
+                print(f"F1: {f1:.4f}, Precision: {precision:.4f}, Recall: {recall:.4f}")
             print(f"Per-class AUC: {auc_scores}")
 
             # Full experiment logging
@@ -294,7 +302,7 @@ def main():
                     "precision": precision,
                     "recall": recall,
                     "time": epoch_time,
-                    "gpu_memory": gpu_memory,
+                    "gpu_memory_mb": gpu_memory,
                 }
             )
 

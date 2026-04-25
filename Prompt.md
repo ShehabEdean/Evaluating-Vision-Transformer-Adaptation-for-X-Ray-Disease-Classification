@@ -1,27 +1,122 @@
-"Please update kaggle_train.py to act as a unified master training script using argparse.
+🧱 STEP 1 — Modify build_vit_model()
 
-Currently, kaggle_train.py is hardcoded to train our CNN baseline. I want to be able to train either the CNN or various Vision Transformer (ViT) strategies from the command line, while preserving all the robust tracking, metrics (F1, Precision, Recall), full checkpointing, and early stopping mechanisms we already implemented.
+This is where everything happens.
 
-Here are the specific changes to make to kaggle_train.py:
+Go to your src/train.py where build_vit_model is defined.
 
-1. Import argparse at the top of the file.
+✍️ Add this logic:
+def build_vit_model(strategy="full", num_classes=14):
+    from transformers import ViTForImageClassification
 
-2. Import the model builder functions from our source module: from src.train import build_baseline_cnn, build_vit_model.
+    model = ViTForImageClassification.from_pretrained(
+        "google/vit-base-patch16-224",
+        num_labels=num_classes,
+        problem_type="multi_label_classification"
+    )
 
-3. Inside the main() block (or before the training setup), set up an ArgumentParser to accept two arguments:
+    if strategy == "partial":
+        print("Applying partial fine-tuning...")
 
---model: type string, choices ['cnn', 'vit'], default 'vit'
+        # Freeze ALL layers first
+        for param in model.vit.parameters():
+            param.requires_grad = False
 
---strategy: type string, choices ['full', 'partial', 'peft_lora'], default 'full'
+        # 🔥 Unfreeze LAST encoder block
+        for param in model.vit.encoder.layer[-1].parameters():
+            param.requires_grad = True
 
-4. Find the line where the model is currently initialized and replace it with conditional logic:
+        # 🔥 Unfreeze classification head
+        for param in model.classifier.parameters():
+            param.requires_grad = True
 
-If args.model == 'cnn', initialize with model = build_baseline_cnn(num_classes=14).
+    elif strategy == "full":
+        print("Using full fine-tuning")
 
-If args.model == 'vit', initialize with model = build_vit_model(strategy=args.strategy, num_classes=14).
+    return model
+🧠 Why this works
 
-5. Ensure the instantiated model is still properly moved to the correct hardware device (e.g., model = model.to(device)).
+You are allowing:
 
-6. Crucial: Update the save paths for the outputs so we don't overwrite previous runs. Modify the paths for history.json and the model checkpoint .pth file to dynamically include the model and strategy names (e.g., f'/kaggle/working/outputs/history_{args.model}_{args.strategy}.json' and f'/kaggle/working/outputs/best_model_{args.model}_{args.strategy}.pth').
+high-level features to adapt
+low-level features to stay stable
 
-Please implement these changes without removing or altering the existing training loop logic, metric calculations, or early stopping logic."
+👉 Best trade-off
+
+🧪 STEP 2 — Verify it’s working (CRITICAL)
+
+You already print:
+
+print(f"Trainable params: {count_trainable_params(model)}")
+✅ Expected result:
+Strategy	Params
+Full	~86M
+Partial	~5–10M
+
+👉 If it still shows ~86M:
+
+❌ your freezing failed
+
+⚙️ STEP 3 — Adjust optimizer (IMPORTANT)
+
+Right now:
+
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+🔥 Change to:
+optimizer = torch.optim.Adam(
+    filter(lambda p: p.requires_grad, model.parameters()),
+    lr=5e-5
+)
+
+👉 This ensures:
+
+only trainable params are updated
+avoids wasting compute
+⚙️ STEP 4 — Keep everything else SAME
+
+DO NOT change:
+
+dataset
+split
+transforms
+batch size
+metrics
+scheduler
+
+👉 This is what makes your comparison valid.
+
+🚀 STEP 5 — Run it
+
+Command:
+
+python kaggle_train.py --model vit --strategy partial
+📊 STEP 6 — What to expect
+Metric	Expected
+AUC	0.74 – 0.77
+Time	↓ faster
+Memory	↓ lower
+Stability	↑ better
+
+👉 If it beats full tuning:
+
+🔥 major insight
+
+🧠 What you’re testing (THIS IS YOUR PAPER)
+
+You are now comparing:
+
+Strategy	AUC	Params	Time
+Full	0.73	86M	high
+Partial	?	~7M	lower
+
+👉 This answers:
+
+“Do we need full fine-tuning?”
+
+⚔️ Brutal truth
+
+If partial gets:
+
+same AUC
+less compute
+
+👉 Full fine-tuning becomes inefficient

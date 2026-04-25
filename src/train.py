@@ -56,11 +56,23 @@ def build_vit_model(strategy: str = "full", num_classes: int = 14):
         pass
 
     elif strategy == "partial":
-        for param in model.vit.embeddings.parameters():
+        print("Applying partial fine-tuning...")
+
+        # Freeze ALL layers first
+        for param in model.parameters():
             param.requires_grad = False
-        for layer in model.vit.encoder.layer[:-2]:
-            for param in layer.parameters():
-                param.requires_grad = False
+
+        # 🔥 Unfreeze LAST encoder block
+        if hasattr(model, "vit"):
+            for param in model.vit.encoder.layer[-1].parameters():
+                param.requires_grad = True
+
+        # 🔥 Unfreeze classification head
+        if hasattr(model, "classifier"):
+            for param in model.classifier.parameters():
+                param.requires_grad = True
+
+        print(f"Trainable params: {count_trainable_params(model)}")
 
     elif strategy == "peft_lora":
         config = LoraConfig(

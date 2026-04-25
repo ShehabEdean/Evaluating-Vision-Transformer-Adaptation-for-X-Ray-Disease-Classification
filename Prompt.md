@@ -1,122 +1,77 @@
-🧱 STEP 1 — Modify build_vit_model()
+🔴 1. This WILL break your code
 
-This is where everything happens.
-
-Go to your src/train.py where build_vit_model is defined.
-
-✍️ Add this logic:
-def build_vit_model(strategy="full", num_classes=14):
-    from transformers import ViTForImageClassification
-
-    model = ViTForImageClassification.from_pretrained(
-        "google/vit-base-patch16-224",
-        num_labels=num_classes,
-        problem_type="multi_label_classification"
-    )
-
-    if strategy == "partial":
-        print("Applying partial fine-tuning...")
-
-        # Freeze ALL layers first
-        for param in model.vit.parameters():
-            param.requires_grad = False
-
-        # 🔥 Unfreeze LAST encoder block
-        for param in model.vit.encoder.layer[-1].parameters():
-            param.requires_grad = True
-
-        # 🔥 Unfreeze classification head
-        for param in model.classifier.parameters():
-            param.requires_grad = True
-
-    elif strategy == "full":
-        print("Using full fine-tuning")
-
-    return model
-🧠 Why this works
-
-You are allowing:
-
-high-level features to adapt
-low-level features to stay stable
-
-👉 Best trade-off
-
-🧪 STEP 2 — Verify it’s working (CRITICAL)
-
-You already print:
+Inside build_vit_model:
 
 print(f"Trainable params: {count_trainable_params(model)}")
-✅ Expected result:
-Strategy	Params
-Full	~86M
-Partial	~5–10M
 
-👉 If it still shows ~86M:
+👉 Problem:
 
-❌ your freezing failed
+count_trainable_params is NOT defined anywhere in this file
 
-⚙️ STEP 3 — Adjust optimizer (IMPORTANT)
+💥 Result:
 
-Right now:
+NameError: name 'count_trainable_params' is not defined
+✅ Fix (do ONE of these)
+Option A (clean)
 
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
-🔥 Change to:
-optimizer = torch.optim.Adam(
-    filter(lambda p: p.requires_grad, model.parameters()),
-    lr=5e-5
-)
+Add this at the top:
 
-👉 This ensures:
+def count_trainable_params(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+Option B (lazy but fine)
 
-only trainable params are updated
-avoids wasting compute
-⚙️ STEP 4 — Keep everything else SAME
+Delete that print line
 
-DO NOT change:
+👉 My advice: keep it + define the function
+This is useful for debugging strategies.
 
-dataset
-split
-transforms
-batch size
-metrics
-scheduler
+🟡 2. Your model saving name is misleading
+save_path = f"best_model_cnn.pth"
 
-👉 This is what makes your comparison valid.
+But you're using:
 
-🚀 STEP 5 — Run it
+model = build_vit_model(...)
 
-Command:
 
-python kaggle_train.py --model vit --strategy partial
-📊 STEP 6 — What to expect
-Metric	Expected
-AUC	0.74 – 0.77
-Time	↓ faster
-Memory	↓ lower
-Stability	↑ better
+Fix:
+save_path = f"best_model_vit.pth"
+🟡 3. You’re always using FULL fine-tuning
+model = build_vit_model(strategy="full", num_classes=14)
 
-👉 If it beats full tuning:
+So:
 
-🔥 major insight
+your partial and peft_lora code is never tested
 
-🧠 What you’re testing (THIS IS YOUR PAPER)
+👉 Not wrong, but:
 
-You are now comparing:
+you think you built multiple strategies
+but you're only running one
+🟡 4. DataLoader optimization (small but real)
 
-Strategy	AUC	Params	Time
-Full	0.73	86M	high
-Partial	?	~7M	lower
+You used:
 
-👉 This answers:
+pin_memory=True
 
-“Do we need full fine-tuning?”
+Good 👍
 
-⚔️ Brutal truth
+But better:
 
-If partial gets:
+pin_memory=torch.cuda.is_available()
+🟡 5. Subtle research-level issue (important)
 
-same AUC
-less compute
+You compute:
 
-👉 Full fine-tuning becomes inefficient
+preds_binary = (all_preds > 0.5)
+
+👉 Fixed threshold = 0.5
+
+For medical datasets:
+
+this is usually NOT optimal
+classes are imbalanced
+
+💡 Real pros:
+
+tune threshold per class
+
+But for now, it's fine.

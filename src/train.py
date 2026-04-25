@@ -62,17 +62,15 @@ def build_vit_model(strategy: str = "full", num_classes: int = 14):
         for param in model.parameters():
             param.requires_grad = False
 
-        # 🔥 Unfreeze LAST encoder block
+        #  Unfreeze LAST encoder block
         if hasattr(model, "vit"):
             for param in model.vit.encoder.layer[-1].parameters():
                 param.requires_grad = True
 
-        # 🔥 Unfreeze classification head
+        #  Unfreeze classification head
         if hasattr(model, "classifier"):
             for param in model.classifier.parameters():
                 param.requires_grad = True
-
-        print(f"Trainable params: {count_trainable_params(model)}")
 
     elif strategy == "peft_lora":
         config = LoraConfig(
@@ -150,7 +148,7 @@ def evaluate(model, dataloader, device, criterion=None):
 def main():
     set_seed(RANDOM_SEED)
 
-    device = torch.device("cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     CSV_PATH = "dataset/labels.csv"
     IMAGE_DIRS = [
@@ -234,12 +232,9 @@ def main():
 
     model = build_vit_model(strategy="full", num_classes=14).to(device)
 
-    def count_trainable_params(model):
-        return sum(p.numel() for p in model.parameters() if p.requires_grad)
-
-    print(f"Trainable params: {count_trainable_params(model)}")
-
-    optimizer = torch.optim.Adam(model.parameters(), lr=5e-5)
+    optimizer = torch.optim.Adam(
+        filter(lambda p: p.requires_grad, model.parameters()), lr=5e-5
+    )
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode="max", factor=0.1, patience=2
     )
@@ -280,7 +275,7 @@ def main():
 
             if mean_auc > best_auc:
                 best_auc = mean_auc
-                save_path = f"best_model_cnn.pth"
+                save_path = f"best_model_vit.pth"
                 torch.save(
                     {
                         "model_state_dict": model.state_dict(),

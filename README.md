@@ -35,19 +35,21 @@ pip install torch torchvision transformers peft scikit-learn pandas matplotlib n
 
 ```
 myPorject/
-├── ViT_XRay_Roadmap.ipynb    # Main research notebook
 ├── ViT_XRay_Roadmap.md       # Project description
-├── requirements.txt          # Dependencies
-├── data/                     # Raw dataset (images_001-012/, Data_Entry_2017.csv)
+├── README.md                # This file
+├── requirements.txt         # Dependencies
+├── AGENTS.md                # Agent instructions
+├── data/                    # Dataset files (images_001-012/, train_val_list.txt, test_list.txt, PDFs)
 ├── dataset/
-│   └── labels.csv           # Labels CSV (symlink to data/)
-│   └── images/               # Image directory (or symlinks to data/)
+│   └── labels.csv          # Labels CSV
 ├── src/
-│   ├── dataset.py           # ChestXRayDataset + alignment validation
+│   ├── dataset.py          # ChestXRayDataset + alignment validation
 │   ├── transforms.py        # Image transforms (train/val)
-│   └── train.py             # Training loop, model builders, evaluation
-├── models/                   # Saved model checkpoints (when added)
-└── AGENTS.md                 # This file
+│   └── train.py            # Training loop, model builders, evaluation
+├── kaggle_train.py         # Kaggle training script
+├── outputs/                # Model outputs/results
+├── Related work/           # Reference papers
+└── venv/                   # Virtual environment
 ```
 
 ## Key Features
@@ -66,11 +68,11 @@ myPorject/
 - **Epochs**: 10
 - **Optimizer**: Adam
 - **Loss Function**: BCEWithLogitsLoss with class weighting
-- **Metrics**: AUC, F1, Precision, Recall
+- **Metrics**: AUC (mean and macro)
 
 ### Data Processing
 
-- **Transforms**: Random resized crops, horizontal flips, normalization
+- **Transforms**: Resize, horizontal flips, rotation, color jitter, normalization
 - **Validation**: Image-label alignment verification
 - **Splitting**: Patient-level split (80% train, 20% val)
 
@@ -88,47 +90,25 @@ python src/train.py
 python kaggle_train.py
 ```
 
-### Notebook Development
-
-```bash
-# Validate notebook syntax
-python3 -c "import nbformat; nbformat.read('notebook.ipynb', as_version=4)"
-
-# Execute notebook
-jupyter nbconvert --to notebook --execute notebook.ipynb --output notebook.ipynb
-```
-
 ## Results
 
 The project compares:
 - Training time and resource usage
-- Model performance (AUC, F1, Precision, Recall)
+- Model performance (AUC - mean and macro)
 - Parameter efficiency
 - Generalization capabilities
 
-## Code Quality
-
-- Type annotations
-- Google-style docstrings
-- Comprehensive error handling
-- Modular design for easy extension
-
-## License
-
-FOR PFE
-
 ## Citation
 
-If you use this code or dataset in your research, please cite:
-
-```
-@article{your_citation_here,
-  title={Vision Transformer Adaptation for Chest X-Ray Disease Classification},
-  author={Ali Chihab Edine Benbertal
-  Saad Zenikhri},
-  year={2026}
+@mastersthesis{benbertal_zenikheri_2026,
+  title        = {Vision Transformer Adaptation for Chest X-Ray Disease Classification},
+  author       = {Benbertal, Ali Chihab Edine and Zenikheri, Saad},
+  year         = {2026},
+  school       = {Amar Telidji University of Laghouat},
+  type         = {Master's Thesis},
+  address      = {Laghouat, Algeria},
+  note         = {Supervised by Dr. Younes Guellouma.}
 }
-```
 
 ## Contact
 
